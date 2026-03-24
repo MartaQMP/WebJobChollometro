@@ -12,11 +12,11 @@ namespace WebJobChollometro.Repositories
     public class RepositoryChollometro
     {
         private ChollometroContext context;
-
         public RepositoryChollometro(ChollometroContext context)
         {
             this.context = context;
         }
+
         private async Task<int> GetMaxIdCholloAsync()
         {
             if (this.context.Chollos.Count() == 0)
@@ -25,37 +25,31 @@ namespace WebJobChollometro.Repositories
             }
             else
             {
-                return await
-                this.context.Chollos
-                .MaxAsync(x => x.IdChollo) + 1;
+                return await this.context.Chollos.MaxAsync(x => x.IdChollo) + 1;
             }
         }
-
         public async Task<List<Chollo>> GetChollosWebAsync()
         {
             string url = "https://www.chollometro.com/rss";
-            HttpWebRequest request = (HttpWebRequest)
-            WebRequest.Create(url);
-            request.Accept = @"text/html application/xhtml+xml, *.*";
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            request.Accept = @"text/html application/xhtml+xml, *.*";
             request.Host = "www.chollometro.com";
             request.Headers.Add("Accept-language", "es-ES");
             request.Referer = "https://www.chollometro.com";
-            request.UserAgent = @"Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)";
-            HttpWebResponse response = (HttpWebResponse)
-            await request.GetResponseAsync();
-            /* ESTE TIPO DE PETICION SE PUEDE UTILIZAR PARA TODO PODEMOS LEER UN VIDEO, UNA IMAGEN O SIMPLE TEXTO HTML 
-             * NOS DEVUELVE UN STREAM */
+            request.UserAgent = @"Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)";
+            HttpWebResponse response = (HttpWebResponse)await request.GetResponseAsync();
+            //ESTE TIPO DE PETICION SE PUEDE UTILIZAR PARA TODO
+            //PODEMOS LEER UN VIDEO, UNA IMAGEN O SIMPLE TEXTO HTML
+            //NOS DEVUELVE UN STREAM
             string xmlData = "";
-            using (StreamReader reader = new StreamReader
-            (response.GetResponseStream()))
+            using (StreamReader reader = new StreamReader(response.GetResponseStream()))
             {
                 xmlData = await reader.ReadToEndAsync();
             }
             XDocument document = XDocument.Parse(xmlData);
-            var consulta = from datos in document.Descendants("item")
-                           select datos;
+            var consulta = from datos in document.Descendants("item") select datos;
             int idChollo = await this.GetMaxIdCholloAsync();
-            List<Chollo> chollosList = new List<Chollo>();
+            List<Chollo> chollos = new List<Chollo>();
             foreach (var tag in consulta)
             {
                 Chollo c = new Chollo();
@@ -64,10 +58,10 @@ namespace WebJobChollometro.Repositories
                 c.Descripcion = tag.Element("description").Value;
                 c.Link = tag.Element("link").Value;
                 c.Fecha = DateTime.Now;
-                chollosList.Add(c);
                 idChollo += 1;
+                chollos.Add(c);
             }
-            return chollosList;
+            return chollos;
         }
 
         public async Task PopulateChollosAzureAsync()
@@ -79,6 +73,5 @@ namespace WebJobChollometro.Repositories
             }
             await this.context.SaveChangesAsync();
         }
-
     }
 }
